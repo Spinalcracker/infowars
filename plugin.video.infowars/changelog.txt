@@ -1,3 +1,25 @@
+[B]Version 2.0.8[/B]
+- Removed Censored Content (Spinalcracker)
+- Cleaned up Menu System
+- Added New Shows
+- Added Millie Weaver Youtube Channel
+
+[B]Version 2.0.7[/B]
+- Updated Youtube feeds (Spinalcracker)
+
+[B]Version 2.0.6[/B]
+- Updated links (Spinalcracker)
+- Updated Youtube feeds
+- Added War Room Youtube feed
+- Cleaned up some code
+
+[B]Version 2.0.5[/B]
+- Updated links (Spinalcracker)
+- Added Youtube feeds
+- Added new shows
+- Removed discontinued shows
+- Fixed past audio podcasts
+
 [B]Version 2.0.4[/B]
 - Updated links (Spinalcracker)
 - Added Paul Joseph Watson section

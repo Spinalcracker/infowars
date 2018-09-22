@@ -12,7 +12,7 @@
 ### ############################################################################################################
 ##### Imports #####
 import xbmcplugin, xbmcgui, xbmcaddon, xbmcvfs, xbmc
-import urllib,urllib2,re,os,sys,htmllib,string,StringIO,logging,random,array,time,datetime
+import urllib,urllib2, urllib3, re,os,sys,htmllib,string,StringIO,logging,random,array,time,datetime, ssl, socket
 import copy
 import HTMLParser, htmlentitydefs
 try: 		from sqlite3 										import dbapi2 as sqlite; print "Loading sqlite3 as DB engine"
@@ -36,24 +36,38 @@ except:
 ### ############################################################################################################
 ### Plugin Settings ###
 
-_addon=Addon('plugin.video.infowars', sys.argv); addon=_addon; 
-addon=_addon; 
-_domain_url="infowars.com"
-_addonPath	=xbmc.translatePath('Infowars')
-_addon_path_art= ""
-_artPath		=xbmc.translatePath(os.path.join(_addonPath,_addon_path_art))
-_datapath 	=xbmc.translatePath(_addon.get_profile()); 
-_artIcon		=_addon.get_icon(); 
-_artFanart	=_addon.get_fanart()
-__plugin__ = "Infowars"
-__authors__ = "Prafit | Spinalcracker"
-__plugin__= "Infowars"
-__credits__= ""
-_addon_id="plugin.video.infowars"
-_database_name="infowars"
-_plugin_id= "plugin.video.infowars"
-_database_file=os.path.join(xbmc.translatePath("special://database"),'infowars.db'); 
-_debugging= False
+IW_addon=Addon('plugin.video.infowars', sys.argv); addon=IW_addon; 
+addon=IW_addon; 
+IW_domain_url="infowars.com"
+IW_addonPath	=xbmc.translatePath('Infowars')
+IW_addon_path_art= ""
+IW_artPath		=xbmc.translatePath(os.path.join(IW_addonPath,IW_addon_path_art))
+IW_datapath 	=xbmc.translatePath(IW_addon.get_profile()); 
+IW_artIcon		=IW_addon.get_icon(); 
+IW_artFanart	=IW_addon.get_fanart()
+IW_plugin = "Infowars"
+IW_authors = "Prafit, Spinalcracker"
+IW_credits= ""
+IW_addon_id="plugin.video.infowars"
+IW_database_name="infowars"
+IW_plugin_id= "plugin.video.infowars"
+IW_database_file=os.path.join(xbmc.translatePath("special://database"),'infowars.db'); 
+IW_debugging= False
+AJSIcon = "https://yt3.ggpht.com/-DbNegouDvyU/AAAAAAAAAAI/AAAAAAAAAAA/QyDM_-5eUFc/s288-c-k-no-mo-rj-c0xffffff/photo.jpg"
+RNWDKIcon = "https://yt3.ggpht.com/-QT90gbNHnJ4/AAAAAAAAAAI/AAAAAAAAAAA/vuPslh3AecY/s200-c-k-no-mo-rj-c0xffffff/photo.jpg"
+RNWDKFanart = "https://yt3.ggpht.com/-CMiJh2_nzpk79XL68m_zoyGyd4lPz42Fxy01TLVDGOgiP-4DaoLZ-lbc65KQWJGdtHn7UO-=w1440-fcrop64=1,32b75a57cd48a5a8-nd-c0xffffffff-rj-k-no"
+WarRoomIcon = "https://yt3.ggpht.com/-2RKaabiN_g8/AAAAAAAAAAI/AAAAAAAAAAA/9Q41iU3wnn8/s288-c-k-no-mo-rj-c0xffffff/photo.jpg"
+#WarRoomFanart = "https://yt3.ggpht.com/QT57n2r7hRWZ-Mlj3B-67Hcr_2YWvwZnWKns3yak3DCQByyPzW6UOfY6vlpMSVhIg7xNQEdTdw=w1440-fcrop64=1,32b75a57cd48a5a8-nd-c0xffffffff-rj-k-no" #youtube banner
+WarRoomFanart = "https://pbs.twimg.com/profile_banners/890980517855866881/1504651644/1500x500" #twitter banner
+CTIcon = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR7wPsgffB62ZVJyUX8HTMWjEFhzT3rCfk_eWX9-1y1UlCdYNJ0"
+CTFanart = "https://cf-images.us-east-1.prod.boltdns.net/v1/static/5762013463001/bd176705-f42c-453c-96f2-709e4369b42f/9efd050e-4cac-4828-aced-f4a1d9b7a7cb/1280x720/match/image.jpg"
+IWLiveSEIcon = "https://hw.infowars.com/wp-content/images/logo.jpg"
+IWLiveSEFanart = "https://www.infowars.com/wp-content/uploads/2018/08/jones-censored23.jpg"
+PJWIcon = "https://yt3.ggpht.com/-fIb6IwufvwI/AAAAAAAAAAI/AAAAAAAAAAA/Smnj7cy5o0Y/s288-c-k-no-mo-rj-c0xffffff/photo.jpg"
+PJWFanart = "https://yt3.ggpht.com/tyGFHEOVkzV0ebThsLL3dB7p2Q-s5CpAwia5IM5gXsY_0Vgiy8gHs6HQTXhN3FnBxi_2p9LrgAY=w2120-fcrop64=1,00000000ffffffff-nd-c0xffffffff-rj-k-no"
+MWIcon = "https://pbs.twimg.com/profile_images/752288529431007238/D_9wxf-q_400x400.jpg"
+MWFanart = "https://www.infowarsteam.com/wp-content/uploads/2016/10/Millie-Weaver.jpg"
+
 
 ### ##### /\ ##### Plugin Settings ###
 
@@ -173,7 +187,7 @@ def filename_from_title(title, video_type):
     xbmc.makeLegalFilename(filename)
     return filename
 	
-def addpr(r,s=''): return _addon.queries.get(r,s) ## Get Params
+def addpr(r,s=''): return IW_addon.queries.get(r,s) ## Get Params
 def tfalse(r,d=False): ## Get True / False
 	if   (r.lower()=='true' ): return True
 	elif (r.lower()=='false'): return False
@@ -182,16 +196,16 @@ def tfalse(r,d=False): ## Get True / False
 _setting={}; 
 
 def eod(): xbmcplugin.endOfDirectory(int(sys.argv[1]))
-def myNote(header='',msg='',delay=5000,image=''): _addon.show_small_popup(title=header,msg=msg,delay=delay,image=image)
+def myNote(header='',msg='',delay=5000,image=''): IW_addon.show_small_popup(title=header,msg=msg,delay=delay,image=image)
 def cFL( t,c="green"): return '[COLOR '+c+']'+t+'[/COLOR]' ### For Coloring Text ###
 def cFL_(t,c="green"): return '[COLOR '+c+']'+t[0:1]+'[/COLOR]'+t[1:] ### For Coloring Text (First Letter-Only) ###
 def notification(header="", message="", sleep=5000 ): xbmc.executebuiltin( "XBMC.Notification(%s,%s,%i)" % ( header, message, sleep ) )
 def WhereAmI(t): ### for Writing Location Data to log file ###
-	if (_debugging==True): print 'Where am I:  '+t
+	if (IW_debugging==True): print 'Where am I:  '+t
 def deb(s,t): ### for Writing Debug Data to log file ###
-	if (_debugging==True): print s+':  '+t
+	if (IW_debugging==True): print s+':  '+t
 def debob(t): ### for Writing Debug Object to log file ###
-	if (_debugging==True): print t
+	if (IW_debugging==True): print t
 def nolines(t):
 	it=t.splitlines(); t=''
 	for L in it: t=t+L
@@ -218,7 +232,7 @@ def build_listitem(video_type, title, year, img, resurl, movie_num='', imdbnum='
     if not extra_cms: extra_cms = []
     menu_items = extra_cms
     queries = {'mode': 'add_to_library', 'video_type': video_type, 'movie_num': movie_num, 'title': title, 'img': img, 'year': year, 'url': resurl, 'imdbnum':imdbnum}
-    runstring = 'RunPlugin(%s)' % _addon.build_plugin_url(queries)
+    runstring = 'RunPlugin(%s)' % IW_addon.build_plugin_url(queries)
     menu_items.append(('Add to Library', runstring), )
 
     disp_title = title
@@ -228,12 +242,12 @@ def build_listitem(video_type, title, year, img, resurl, movie_num='', imdbnum='
 
 
 def add_to_library(video_type, url, title, img, year, imdbnum, movie_num=''):
-    try: _addon.log('Creating .strm for %s %s %s %s %s %s' % (video_type, title, imdbnum, url, img, year))
+    try: IW_addon.log('Creating .strm for %s %s %s %s %s %s' % (video_type, title, imdbnum, url, img, year))
     except: pass
     if video_type == 'tvshow':
-        save_path = _addon.get_setting('tvshow-folder')
+        save_path = IW_addon.get_setting('tvshow-folder')
         save_path = xbmc.translatePath(save_path)
-        strm_string = _addon.build_plugin_url(
+        strm_string = IW_addon.build_plugin_url(
             {'mode': 'NightlyNewsSubMenu','dialog': '1'})
         if year: title = '%s (%s)' % (title, year)
         filename = filename_from_title(title + ' s1e1', 'movie')
@@ -246,7 +260,7 @@ def add_to_library(video_type, url, title, img, year, imdbnum, movie_num=''):
                 try: xbmcvfs.mkdirs(os.path.dirname(final_path))
                 except: os.path.mkdir(os.path.dirname(final_path))
             except Exception, e:
-                try: _addon.log('Failed to create directory %s' % final_path)
+                try: IW_addon.log('Failed to create directory %s' % final_path)
                 except: pass
                 # if not xbmcvfs.exists(final_path):
                 #temp disabled bc of change in .strm format. Reenable in next version
@@ -255,11 +269,11 @@ def add_to_library(video_type, url, title, img, year, imdbnum, movie_num=''):
             file_desc.write(strm_string)
             file_desc.close()
         except Exception, e:
-            _addon.log('Failed to create .strm file: %s\n%s' % (final_path, e))
+            IW_addon.log('Failed to create .strm file: %s\n%s' % (final_path, e))
     elif video_type == 'movie':
-        save_path = _addon.get_setting('movie-folder')
+        save_path = IW_addon.get_setting('movie-folder')
         save_path = xbmc.translatePath(save_path)
-        strm_string = _addon.build_plugin_url(
+        strm_string = IW_addon.build_plugin_url(
             {'mode': 'DocSubMenu','dialog': '1', 'movie_num': movie_num})
         if year: title = '%s (%s)' % (title, year)
         filename = filename_from_title(title, 'movie')
@@ -271,7 +285,7 @@ def add_to_library(video_type, url, title, img, year, imdbnum, movie_num=''):
                 try: xbmcvfs.mkdirs(os.path.dirname(final_path))
                 except: os.path.mkdir(os.path.dirname(final_path))
             except Exception, e:
-                try: _addon.log('Failed to create directory %s' % final_path)
+                try: IW_addon.log('Failed to create directory %s' % final_path)
                 except: pass
                 # if not xbmcvfs.exists(final_path):
                 #temp disabled bc of change in .strm format. Reenable in next version
@@ -280,7 +294,7 @@ def add_to_library(video_type, url, title, img, year, imdbnum, movie_num=''):
             file_desc.write(strm_string)
             file_desc.close()
         except Exception, e:
-            _addon.log('Failed to create .strm file: %s\n%s' % (final_path, e))
+            IW_addon.log('Failed to create .strm file: %s\n%s' % (final_path, e))
 
 	
 ### ############################################################################################################
@@ -304,13 +318,19 @@ _param['subfav']=addpr('subfav',''); _param['episodetitle']=addpr('episodetitle'
 ##### Player Functions #####
 def PlayURL(url):
 	play=xbmc.Player() ### xbmc.PLAYER_CORE_AUTO | xbmc.PLAYER_CORE_DVDPLAYER | xbmc.PLAYER_CORE_MPLAYER | xbmc.PLAYER_CORE_PAPLAYER
-	try: _addon.resolve_url(url)
+	try: IW_addon.resolve_url(url)
 	except: t=''
 	try: play.play(url)
 	except: t=''
 	
 def play(params):
     play_resolved_url( params.get("url") )	
+
+def playYoutube(url):
+    xbmc.log(url)
+    video_id = 'TSTaV8g3zwI'
+    url = "plugin://plugin.video.youtube/play/?video_id=%s" % video_id
+    PlayURL(url)
     
 ### ############################################################################################################
 ### ############################################################################################################
@@ -318,36 +338,104 @@ def play(params):
 
 def Menu_MainMenu(): #The Main Menu
     WhereAmI('@ the Main Menu')
-    _addon.add_directory({'mode': 'PlayURL','url':'http://infowarslive-lh.akamaihd.net/i/infowarslivestream_1@353459/index_800_av-p.m3u8?sd=10&rebase=on'},{'title':  cFL_('Infowars.com Live Video(Loops After Airing)','lime')},is_folder=False,img=_artIcon,fanart=_artFanart)
-    _addon.add_directory({'mode': 'PlayURL','url':'http://www.infowars.com/stream.pls'},{'title':  cFL_('Infowars.com Live Audio(Loops After Airing)','lime')},is_folder=False,img=_artIcon,fanart=_artFanart)
+    #IW_addon.add_directory({'mode': 'InfoWarsLiveSubMenu','title':'The Alex Jones Show Live HD (Youtube)'},{'title':  cFL_('The Alex Jones Show - Live HD (Youtube)','lime')},is_folder=False,img=AJSIcon,fanart=IW_artFanart)
+    IW_addon.add_directory({'mode': 'PlayURL','url':'https://infowarslive-lh.akamaihd.net/i/infowarslivestream_1@353459/master.m3u8'},{'title':  cFL_('The Alex Jones Show - (Loops After Airing)','lime')},is_folder=False,img=AJSIcon,fanart=IW_artFanart)
+    #IW_addon.add_directory({'mode': 'PlayURL','url':'http://www.infowars.com/stream.pls'},{'title':  cFL_('The Alex Jones Show - Live - Audio Only (Loops After Airing)','lime')},is_folder=False,img=AJSIcon,fanart=IW_artFanart)
+    #IW_addon.add_directory({'mode': 'RealNewsWDKLiveSubMenu','title':'Real News with David Knight Live HD (Youtube Feed Video)'},{'title':  cFL_('Real News with David Knight - Live HD (Youtube)','red')},is_folder=False,img=RNWDKIcon,fanart=RNWDKFanart)
+    IW_addon.add_directory({'mode': 'PlayURL','url':'https://streaminfo-live.secure.footprint.net/hls-live/streamroot2-streaminfo3/_definst_/live.m3u8'},{'title':  cFL_('Real News with David Knight - (Loops After Airing)','red')},is_folder=False,img=RNWDKIcon,fanart=RNWDKFanart)
+    #IW_addon.add_directory({'mode': 'WarRoomLiveSubMenu','title':'War Room with Owen Shroyer Live HD (Youtube Feed Video)'},{'title':  cFL_('War Room with Owen Shroyer - Live HD (Youtube)','purple')},is_folder=False,img=WarRoomIcon,fanart=WarRoomFanart)
+    IW_addon.add_directory({'mode': 'PlayURL','url':'https://streaminfo-live.secure.footprint.net/hls-live/streamroot2-streaminfo2/_definst_/live.m3u8'},{'title':  cFL_('War Room with Owen Shroyer - (Loops After Airing)','purple')},is_folder=False,img=WarRoomIcon,fanart=WarRoomFanart)
+    IW_addon.add_directory({'mode': 'PlayURL','url':'https://infowarslive-lh.akamaihd.net/i/MikeAdams_1@704916/master.m3u8'},{'title':  cFL_('Counter Think with Mike Adams - (Loops After Airing)','orange')},is_folder=False,img=CTIcon,fanart=CTFanart)
+    IW_addon.add_directory({'mode': 'PlayURL','url':'https://infowarslive-lh.akamaihd.net/i/infowarsevent_1@366809/master.m3u8'},{'title':  cFL_('Live Shows & Special Events','yellow')},is_folder=False,img=IWLiveSEIcon,fanart=IWLiveSEFanart)
+	#IW_addon.add_directory({'mode': 'ClipsSubMenu','title':'Infowars Nightly News'},{'title':  cFL_('Infowars Clips','red')},is_folder=True,img=IW_artIcon,fanart=IW_artFanart)
+    IW_addon.add_directory({'mode': 'PaulJosephWatsonSubMenu','title':'Paul Joseph Watson (Youtube Video)'},{'title':  cFL_('Paul Joseph Watson (Youtube)','blue')},is_folder=True,img=PJWIcon,fanart=PJWFanart)
+    IW_addon.add_directory({'mode': 'MillieWeaverSubMenu','title':'Millie Weaver (Youtube Video)'},{'title':  cFL_('Millie Weaver (Youtube)','pink')},is_folder=True,img=MWIcon,fanart=MWFanart)
     video_type = ('tvshow')
-    title = ('Infowars Nightly News')
+    title = cFL_('Infowars Nightly News','lime')
     year = ('')
-    img = _artIcon
+    img = IW_artIcon
+    fanart = IW_artFanart
     imdbnum = ''
     url = 'plugin://plugin.video.infowars'
     resurl = 'plugin://plugin.video.infowars'
-    listitem = build_listitem(video_type, title, year, img, resurl)
+    listitem = build_listitem(video_type, title, year, img, fanart, resurl)
     #url = '%s/%s' % (BASE_URL, resurl)
     queries = {'mode': 'NightlyNewsSubMenu'}
-    li_url = _addon.build_plugin_url(queries)
-    xbmcplugin.addDirectoryItem(int(sys.argv[1]), li_url, listitem,isFolder=True)
-    #_addon.add_directory({'mode': 'NightlyNewsSubMenu','title':'Infowars Nightly News'},{'title':  cFL_('Infowars Nightly News','red')},is_folder=True,img=_artIcon,fanart=_artFanart)
-    _addon.add_directory({'mode': 'ClipsSubMenu','title':'Infowars Nightly News'},{'title':  cFL_('Infowars Clips','red')},is_folder=True,img=_artIcon,fanart=_artFanart)
-    _addon.add_directory({'mode': 'DocSubMenu','title':'Acclaimed Documentaries'},{'title':  cFL_('Acclaimed Documentaries','blanchedalmond')},is_folder=True,img=_artIcon,fanart=_artFanart)
-    _addon.add_directory({'mode': 'HistoricShowsSubMenu','title':'Past Alex Jones Shows(video)'},{'title':  cFL_('Past Alex Jones Shows (Video)','yellow')},is_folder=True,img=_artIcon,fanart=_artFanart)
-    _addon.add_directory({'mode': 'HistoricShowsAudioSubMenu','title':'Past Alex Jones Shows(video)'},{'title':  cFL_('Past Alex Jones (Audio)','yellow')},is_folder=True,img=_artIcon,fanart=_artFanart)
-    _addon.add_directory({'mode': 'PaulJosephWatsonSubMenu','title':'Paul Joseph Watson (Video)'},{'title':  cFL_('Paul Joseph Watson (Video)','blue')},is_folder=True,img=_artIcon,fanart=_artFanart)
+    li_url = IW_addon.build_plugin_url(queries)
+    #xbmcplugin.addDirectoryItem(int(sys.argv[1]), li_url, listitem,isFolder=True)
+    #IW_addon.add_directory({'mode': 'NightlyNewsSubMenu','title':'Infowars Nightly News'},{'title':  cFL_('Infowars Nightly News','red')},is_folder=True,img=IW_artIcon,fanart=IW_artFanart)
+    #IW_addon.add_directory({'mode': 'ClipsSubMenu','title':'Infowars Clips'},{'title':  cFL_('Infowars Clips','yellow')},is_folder=True,img=IW_artIcon,fanart=IW_artFanart)
+    IW_addon.add_directory({'mode': 'DocSubMenu','title':'Acclaimed Documentaries'},{'title':  cFL_('Acclaimed Documentaries','blanchedalmond')},is_folder=True,img=IW_artIcon,fanart=IW_artFanart)
+    #IW_addon.add_directory({'mode': 'HistoricShowsSubMenu','title':'Past Alex Jones Shows(video)'},{'title':  cFL_('Past Alex Jones Shows (Video)','yellow')},is_folder=True,img=AJSIcon,fanart=IW_artFanart)
+    #IW_addon.add_directory({'mode': 'HistoricShowsAudioSubMenu','title':'Past Alex Jones Shows(video)'},{'title':  cFL_('Past Alex Jones (Audio)','yellow')},is_folder=True,img=AJSIcon,fanart=IW_artFanart)
+    
+    eod()
+""" 
+#####################################################################################
+########### OLD CODE LEFT IN CASE IW IS UNBANNED BY THE INTERNET SOMEDAY ############
+#####################################################################################
+
+def Info_Wars_Live_Sub_Menu(title=''): #The Main Menu
+    WhereAmI('@ Info Wars Live')
+    http = urllib3.PoolManager()
+    url = 'https://www.infowars.com/watch-alex-jones-show/'
+    response = http.request('GET', url)
+    if response:
+        content = response.data
+        videos= find_multiple_matches(content,"<ul class=\"show__footer\"(.*?)</ul>")
+        sources = []
+        for temp, entry in enumerate(videos): 
+            if temp == 0:
+                video_id = find_single_match(entry,"data-youtube-src=\"https://www.youtube.com/embed/(.*?)\"")
+                url = "plugin://plugin.video.youtube/play/?video_id=%s" % video_id
+                #IW_addon.log('SPINAL VIDEO_ID IS %s' % video_id)
+                xbmc.Player().play(url)
+                break
     eod()
 
+def Real_News_WDK_Sub_Menu(title=''): #The Main Menu
+    WhereAmI('@ Real News Live')
+    http = urllib3.PoolManager()
+    url = 'https://www.infowars.com/watch-alex-jones-show/'
+    response = http.request('GET', url)
+    if response:
+        content = response.data
+        videos= find_multiple_matches(content,"<ul class=\"show__footer\"(.*?)</ul>")
+        sources = []
+        for temp, entry in enumerate(videos): 
+            if temp == 1:
+                video_id = find_single_match(entry,"data-youtube-src=\"https://www.youtube.com/embed/(.*?)\"")
+                url = "plugin://plugin.video.youtube/play/?video_id=%s" % video_id
+                play=xbmc.Player() ### xbmc.PLAYER_CORE_AUTO | xbmc.PLAYER_CORE_DVDPLAYER | xbmc.PLAYER_CORE_MPLAYER | xbmc.PLAYER_CORE_PAPLAYER
+                play.play(url)
+                break
+    eod()
 
+def War_Room_Sub_Menu(title=''): #The Main Menu
+    WhereAmI('@ War Room Live')
+    http = urllib3.PoolManager()
+    url = 'https://www.infowars.com/watch-alex-jones-show/'
+    response = http.request('GET', url)
+    if response:
+        content = response.data
+        videos= find_multiple_matches(content,"<ul class=\"show__footer\"(.*?)</ul>")
+        sources = []
+        for temp, entry in enumerate(videos): 
+            if temp == 2:
+                video_id = find_single_match(entry,"data-youtube-src=\"https://www.youtube.com/embed/(.*?)\"")
+                url = "plugin://plugin.video.youtube/play/?video_id=%s" % video_id
+                play=xbmc.Player() ### xbmc.PLAYER_CORE_AUTO | xbmc.PLAYER_CORE_DVDPLAYER | xbmc.PLAYER_CORE_MPLAYER | xbmc.PLAYER_CORE_PAPLAYER
+                play.play(url)
+                break
+    eod()
+"""
 def Documentary_Sub_Menu(title='', movie_num=''): #The Main Menu
     WhereAmI('@ Documentaries')
     #mode left blank for main menu.
     if not movie_num:
         video_type = ('movie')
         title = ('Strategic Relocation')
-        img = _artIcon
+        img = IW_artIcon
         year = ''
         movie_num = '19'
         resurl = 'plugin://plugin.video.infowars'
@@ -357,7 +445,7 @@ def Documentary_Sub_Menu(title='', movie_num=''): #The Main Menu
         xbmcplugin.addDirectoryItem(int(sys.argv[1]), li_url, listitem,isFolder=False)
         video_type = ('movie')
         title = ('911 Truth Hollywood Speaks Out')
-        img = _artIcon
+        img = IW_artIcon
         year = ''
         movie_num = '18'
         resurl = 'plugin://plugin.video.infowars'
@@ -368,7 +456,7 @@ def Documentary_Sub_Menu(title='', movie_num=''): #The Main Menu
         xbmcplugin.addDirectoryItem(int(sys.argv[1]), li_url, listitem,isFolder=False)
         video_type = ('movie')
         title = ('Invisible Empire A New World Order Defined ')
-        img = _artIcon
+        img = IW_artIcon
         year = ''
         movie_num = '17'
         resurl = 'plugin://plugin.video.infowars'
@@ -379,7 +467,7 @@ def Documentary_Sub_Menu(title='', movie_num=''): #The Main Menu
         xbmcplugin.addDirectoryItem(int(sys.argv[1]), li_url, listitem,isFolder=False)
         video_type = ('movie')
         title = ('Police State 4 The Rise of Fema')
-        img = _artIcon
+        img = IW_artIcon
         year = ''
         movie_num = '16'
         resurl = 'plugin://plugin.video.infowars'
@@ -390,7 +478,7 @@ def Documentary_Sub_Menu(title='', movie_num=''): #The Main Menu
         xbmcplugin.addDirectoryItem(int(sys.argv[1]), li_url, listitem,isFolder=False)
         video_type = ('movie')
         title = ('Fall of the Republic')
-        img = _artIcon
+        img = IW_artIcon
         year = ''
         movie_num = '15'
         resurl = 'plugin://plugin.video.infowars'
@@ -401,7 +489,7 @@ def Documentary_Sub_Menu(title='', movie_num=''): #The Main Menu
         xbmcplugin.addDirectoryItem(int(sys.argv[1]), li_url, listitem,isFolder=False)
         video_type = ('movie')
         title = ('The Obama Deception')
-        img = _artIcon
+        img = IW_artIcon
         year = ''
         movie_num = '14'
         resurl = 'plugin://plugin.video.infowars'
@@ -412,7 +500,7 @@ def Documentary_Sub_Menu(title='', movie_num=''): #The Main Menu
         xbmcplugin.addDirectoryItem(int(sys.argv[1]), li_url, listitem,isFolder=False)
         video_type = ('movie')
         title = ('Truth Rising')
-        img = _artIcon
+        img = IW_artIcon
         year = ''
         movie_num = '13'
         resurl = 'plugin://plugin.video.infowars'
@@ -423,7 +511,7 @@ def Documentary_Sub_Menu(title='', movie_num=''): #The Main Menu
         xbmcplugin.addDirectoryItem(int(sys.argv[1]), li_url, listitem,isFolder=False)
         video_type = ('movie')
         title = ('End Game')
-        img = _artIcon
+        img = IW_artIcon
         year = ''
         movie_num = '12'
         resurl = 'plugin://plugin.video.infowars'
@@ -434,7 +522,7 @@ def Documentary_Sub_Menu(title='', movie_num=''): #The Main Menu
         xbmcplugin.addDirectoryItem(int(sys.argv[1]), li_url, listitem,isFolder=False)
         video_type = ('movie')
         title = ('TerrorStorm')
-        img = _artIcon
+        img = IW_artIcon
         year = ''
         movie_num = '11'
         resurl = 'plugin://plugin.video.infowars'
@@ -445,7 +533,7 @@ def Documentary_Sub_Menu(title='', movie_num=''): #The Main Menu
         xbmcplugin.addDirectoryItem(int(sys.argv[1]), li_url, listitem,isFolder=False)
         video_type = ('movie')
         title = ('Martial Law 911 Rise of the Police State')
-        img = _artIcon
+        img = IW_artIcon
         year = ''
         movie_num = '10'
         resurl = 'plugin://plugin.video.infowars'
@@ -456,7 +544,7 @@ def Documentary_Sub_Menu(title='', movie_num=''): #The Main Menu
         xbmcplugin.addDirectoryItem(int(sys.argv[1]), li_url, listitem,isFolder=False)
         video_type = ('movie')
         title = ('911 The Road to Tyranny')
-        img = _artIcon
+        img = IW_artIcon
         year = ''
         movie_num = '9'
         resurl = 'plugin://plugin.video.infowars'
@@ -467,7 +555,7 @@ def Documentary_Sub_Menu(title='', movie_num=''): #The Main Menu
         xbmcplugin.addDirectoryItem(int(sys.argv[1]), li_url, listitem,isFolder=False)
         video_type = ('movie')
         title = ('Matrix of Evil')
-        img = _artIcon
+        img = IW_artIcon
         year = ''
         movie_num = '8'
         resurl = 'plugin://plugin.video.infowars'
@@ -478,7 +566,7 @@ def Documentary_Sub_Menu(title='', movie_num=''): #The Main Menu
         xbmcplugin.addDirectoryItem(int(sys.argv[1]), li_url, listitem,isFolder=False)
         video_type = ('movie')
         title = ('America Destroyed by Design')
-        img = _artIcon
+        img = IW_artIcon
         year = ''
         movie_num = '7'
         resurl = 'plugin://plugin.video.infowars'
@@ -489,7 +577,7 @@ def Documentary_Sub_Menu(title='', movie_num=''): #The Main Menu
         xbmcplugin.addDirectoryItem(int(sys.argv[1]), li_url, listitem,isFolder=False)
         video_type = ('movie')
         title = ('American Dictators')
-        img = _artIcon
+        img = IW_artIcon
         year = ''
         movie_num = '6'
         resurl = 'plugin://plugin.video.infowars'
@@ -500,7 +588,7 @@ def Documentary_Sub_Menu(title='', movie_num=''): #The Main Menu
         xbmcplugin.addDirectoryItem(int(sys.argv[1]), li_url, listitem,isFolder=False)
         video_type = ('movie')
         title = ('Dark Secrets Inside Bohemian Grove')
-        img = _artIcon
+        img = IW_artIcon
         year = ''
         movie_num = '5'
         resurl = 'plugin://plugin.video.infowars'
@@ -511,7 +599,7 @@ def Documentary_Sub_Menu(title='', movie_num=''): #The Main Menu
         xbmcplugin.addDirectoryItem(int(sys.argv[1]), li_url, listitem,isFolder=False)
         video_type = ('movie')
         title = ('The Order of Death')
-        img = _artIcon
+        img = IW_artIcon
         year = ''
         movie_num = '4'
         resurl = 'plugin://plugin.video.infowars'
@@ -522,7 +610,7 @@ def Documentary_Sub_Menu(title='', movie_num=''): #The Main Menu
         xbmcplugin.addDirectoryItem(int(sys.argv[1]), li_url, listitem,isFolder=False)
         video_type = ('movie')
         title = ('Police State 2000')
-        img = _artIcon
+        img = IW_artIcon
         year = ''
         movie_num = '3'
         resurl = 'plugin://plugin.video.infowars'
@@ -533,7 +621,7 @@ def Documentary_Sub_Menu(title='', movie_num=''): #The Main Menu
         xbmcplugin.addDirectoryItem(int(sys.argv[1]), li_url, listitem,isFolder=False)
         video_type = ('movie')
         title = ('Police State II The Take Over')
-        img = _artIcon
+        img = IW_artIcon
         year = ''
         movie_num = '2'
         resurl = 'plugin://plugin.video.infowars'
@@ -544,7 +632,7 @@ def Documentary_Sub_Menu(title='', movie_num=''): #The Main Menu
         xbmcplugin.addDirectoryItem(int(sys.argv[1]), li_url, listitem,isFolder=False)
         video_type = ('movie')
         title = ('Police State 3 Total Enslavement')
-        img = _artIcon
+        img = IW_artIcon
         year = ''
         movie_num = '1'
         resurl = 'plugin://plugin.video.infowars'
@@ -594,6 +682,10 @@ def Documentary_Sub_Menu(title='', movie_num=''): #The Main Menu
         
     eod() #Ends the directory listing and prints it to the screen.  if you dont use eod() or something like it, the menu items won't be put to the screen.
 
+""" 
+#####################################################################################
+########### OLD CODE LEFT IN CASE IW IS UNBANNED BY THE INTERNET SOMEDAY ############
+#####################################################################################
 def Nightly_News_Sub_Menu(title='',dialog=''): #The Main Menu
     #https://www.youtube.com/user/RonGibsonCF
     WhereAmI('@ Nightly News')
@@ -612,7 +704,7 @@ def Nightly_News_Sub_Menu(title='',dialog=''): #The Main Menu
             if title.find('Nightly News') > -1:
                 add_item( action="play" , title=title , plot=plot , url=url ,thumbnail=thumbnail , folder=False )
             #else:
-                #_addon.log('Error while trying to resolve %s' % url)  
+                #IW_addon.log('Error while trying to resolve %s' % url)  
     else:
         util.showError(ADDON_ID, 'Could not open URL %s to create menu' % (url))
     eod()
@@ -663,7 +755,7 @@ def Clips_Sub_Menu(title=''): #The Main Menu
 
 def Historic_Shows_Audio_Sub_Menu(title=''): #The Main Menu
     #https://www.youtube.com/user/RonGibsonCF
-    WhereAmI('@ Nightly News')
+    WhereAmI('@ Historic Shows Audio')
     url = 'https://www.youtube.com/feeds/videos.xml?playlist_id=PLs5CVvsn63q4r4b-RXs4QAaC-Eoc53NgP'
     response = urllib2.urlopen(url)
     if response and response.getcode() == 200:
@@ -675,7 +767,7 @@ def Historic_Shows_Audio_Sub_Menu(title=''): #The Main Menu
             thumbnail = find_single_match(entry,"<media\:thumbnail url=\"(.*?)\"")
             video_id = find_single_match(entry,"<yt\:videoId>([^<]+)</yt\:videoId>")
             url = "plugin://plugin.video.youtube/?path=/root/video&action=play_video&videoid="+video_id
-            if title.find('AJ Show') > -1:
+            if title.find('Alex Jones Show (AUDIO PODCAST)') > -1:
                 add_item( action="play" , title=title , plot=plot , url=url ,thumbnail=thumbnail , folder=False )
                 #if title.find('Podcast') > -1:
                 #    add_item( action="play" , title=title , plot=plot , url=url ,thumbnail=thumbnail , folder=False )
@@ -683,7 +775,7 @@ def Historic_Shows_Audio_Sub_Menu(title=''): #The Main Menu
         util.showError(ADDON_ID, 'Could not open URL %s to create menu' % (url))
 
     eod()
-
+"""
 def Paul_Joseph_Watson_Sub_Menu(title=''): #The Main Menu
     #https://www.youtube.com/user/PrisonPlanetLive
     WhereAmI('@ Paul Joseph Watson')
@@ -703,45 +795,70 @@ def Paul_Joseph_Watson_Sub_Menu(title=''): #The Main Menu
         util.showError(ADDON_ID, 'Could not open URL %s to create menu' % (url))
 
     eod()    
+
+def Millie_Weaver_Sub_Menu(title=''): #The Main Menu
+    #https://www.youtube.com/channel/UCglVbeKF9JGMCt-RTUAW_TQ
+    WhereAmI('@ Millie Weaver')
+    url = 'https://www.youtube.com/feeds/videos.xml?channel_id=UCglVbeKF9JGMCt-RTUAW_TQ'
+    response = urllib2.urlopen(url)
+    if response and response.getcode() == 200:
+        content = response.read()
+        videos= find_multiple_matches(content,"<entry>(.*?)</entry>")
+        for entry in videos:
+            title = find_single_match(entry,"<titl[^>]+>([^<]+)</title>")
+            plot = find_single_match(entry,"<media\:descriptio[^>]+>([^<]+)</media\:description>")
+            thumbnail = find_single_match(entry,"<media\:thumbnail url=\"(.*?)\"")
+            video_id = find_single_match(entry,"<yt\:videoId>([^<]+)</yt\:videoId>")
+            url = "plugin://plugin.video.youtube/play/?video_id=%s" % video_id
+            add_item( action="play" , title=title , plot=plot , url=url ,thumbnail=thumbnail , folder=False )
+    else:
+        util.showError(ADDON_ID, 'Could not open URL %s to create menu' % (url))
+
+    eod()    
     
 def check_mode(mode=''):
-    mode = _addon.queries.get('mode', None)
-    section = _addon.queries.get('section', '')
-    genre = _addon.queries.get('genre', '')
-    letter = _addon.queries.get('letter', '')
-    sort = _addon.queries.get('sort', '')
-    url = _addon.queries.get('url', '')
-    title = _addon.queries.get('title', '')
-    img = _addon.queries.get('img', '')
-    season = _addon.queries.get('season', '')
-    query = _addon.queries.get('query', '')
-    page = _addon.queries.get('page', '')
-    imdbnum = _addon.queries.get('imdbnum', '')
-    year = _addon.queries.get('year', '')
-    video_type = _addon.queries.get('video_type', '')
-    episode = _addon.queries.get('episode', '')
-    season = _addon.queries.get('season', '')
-    tvdbnum = _addon.queries.get('tvdbnum', '')
-    alt_id = _addon.queries.get('alt_id', '')
-    dialog = _addon.queries.get('dialog', '')
-    day = _addon.queries.get('day', '')
-    movie_num = _addon.queries.get('movie_num', '')
+    mode = IW_addon.queries.get('mode', None)
+    section = IW_addon.queries.get('section', '')
+    genre = IW_addon.queries.get('genre', '')
+    letter = IW_addon.queries.get('letter', '')
+    sort = IW_addon.queries.get('sort', '')
+    url = IW_addon.queries.get('url', '')
+    title = IW_addon.queries.get('title', '')
+    img = IW_addon.queries.get('img', '')
+    season = IW_addon.queries.get('season', '')
+    query = IW_addon.queries.get('query', '')
+    page = IW_addon.queries.get('page', '')
+    imdbnum = IW_addon.queries.get('imdbnum', '')
+    year = IW_addon.queries.get('year', '')
+    video_type = IW_addon.queries.get('video_type', '')
+    episode = IW_addon.queries.get('episode', '')
+    season = IW_addon.queries.get('season', '')
+    tvdbnum = IW_addon.queries.get('tvdbnum', '')
+    alt_id = IW_addon.queries.get('alt_id', '')
+    dialog = IW_addon.queries.get('dialog', '')
+    day = IW_addon.queries.get('day', '')
+    movie_num = IW_addon.queries.get('movie_num', '')
     WhereAmI('@ Checking Mode')
     deb('Mode',mode)
     if (mode=='') or (mode=='main') or (mode=='MainMenu'):  Menu_MainMenu() ## Default Menu
     elif (mode=='PlayURL'): 							PlayURL(_param['url']) ## Play Video
     elif (mode=='play'): 							play(params) ## Play Video
+    elif (mode=='playYoutube'): 							playYoutube('url')
     elif (mode=='DocSubMenu'): 						Documentary_Sub_Menu(_param['title'], movie_num) ## Play Video
-    elif (mode=='ClipsSubMenu'): 						Clips_Sub_Menu(_param['title']) ## Play Video
-    elif (mode=='NightlyNewsSubMenu'): 						Nightly_News_Sub_Menu(_param['title'], dialog) ## Play Video
-    elif (mode=='HistoricShowsSubMenu'): 						Historic_Shows_Sub_Menu(_param['title']) ## Play Video
-    elif (mode=='HistoricShowsAudioSubMenu'): 						Historic_Shows_Audio_Sub_Menu(_param['title']) ## Play Video
+    #elif (mode=='ClipsSubMenu'): 						Clips_Sub_Menu(_param['title']) ## Play Video
+    #elif (mode=='NightlyNewsSubMenu'): 						Nightly_News_Sub_Menu(_param['title'], dialog) ## Play Video
+    #elif (mode=='HistoricShowsSubMenu'): 						Historic_Shows_Sub_Menu(_param['title']) ## Play Video
+    #elif (mode=='HistoricShowsAudioSubMenu'): 						Historic_Shows_Audio_Sub_Menu(_param['title']) ## Play Video
     elif (mode=='PaulJosephWatsonSubMenu'): 						Paul_Joseph_Watson_Sub_Menu(_param['title']) ## Play Video
-    elif (mode=='Settings'): 							_addon.addon.openSettings() # Another method: _plugin.openSettings() ## Settings for this addon.
+    elif (mode=='MillieWeaverSubMenu'): 						Millie_Weaver_Sub_Menu(_param['title']) ## Play Video
+    #elif (mode=='InfoWarsLiveSubMenu'): 						Info_Wars_Live_Sub_Menu(_param['title']) ## Play Video
+    #elif (mode=='RealNewsWDKLiveSubMenu'): 						Real_News_WDK_Sub_Menu(_param['title']) ## Play Video
+    #elif (mode=='WarRoomLiveSubMenu'): 						War_Room_Sub_Menu(_param['title']) ## Play Video
+    elif (mode=='Settings'): 							IW_addon.addon.openSettings() # Another method: _plugin.openSettings() ## Settings for this addon.
     elif (mode=='ResolverSettings'): 			urlresolver.display_settings()  ## Settings for UrlResolver script.module.
     elif (mode == 'add_to_library'):
         add_to_library(video_type, url, title, img, year, imdbnum, movie_num)
-        builtin = "XBMC.Notification(Add to Library,Added '%s' to library,2000, %s)" % (title, _artIcon)
+        builtin = "XBMC.Notification(Add to Library,Added '%s' to library,2000, %s)" % (title, IW_artIcon)
         xbmc.executebuiltin(builtin)
     #
     #
