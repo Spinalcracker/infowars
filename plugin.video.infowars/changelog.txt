@@ -1,3 +1,18 @@
+[B]Version 2.1.4[/B]
+- Added Fire Power with Will Johnson
+- On demand section switched to Banned Video site
+- On demand section to include all contributors
+
+[B]Version 2.1.3[/B]
+- Fixed On Demand Section
+
+[B]Version 2.1.2[/B]
+- Updated On Demand links
+- Updated Recent Full Show links
+- Updated Live Events Links
+- Removed Counter Think
+- Added Kaitlin Bennett Liberty Hangout Youtube Channel
+
 [B]Version 2.1.1[/B]
 - Updated All Links
 - Removed broken documentary section
